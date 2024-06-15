@@ -20,7 +20,7 @@ import net.minecraft.loot.condition.DamageSourcePropertiesLootCondition;
 import net.minecraft.loot.entry.ItemEntry;
 import net.minecraft.predicate.entity.DamageSourcePredicate;
 import net.minecraft.predicate.entity.EntityPredicate;
-import net.minecraft.predicate.entity.TypeSpecificPredicate;
+import net.minecraft.predicate.entity.EntitySubPredicateTypes;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKeys;
@@ -64,23 +64,20 @@ public class DelightfulFroge implements ModInitializer {
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.NATURAL).register(DelightfulFroge::insertFrogelight);
         ItemGroupEvents.modifyEntriesEvent(ItemGroups.FUNCTIONAL).register(DelightfulFroge::insertFrogelight);
 
-        LootTableEvents.MODIFY.register((resourceManager, lootManager, id, tableBuilder, source) -> {
-            if (!id.equals(EntityType.MAGMA_CUBE.getLootTableId())) return;
-            tableBuilder.pool(
-                    LootPool.builder().with(ItemEntry.builder(FROGELIGHT).conditionally(
-                            DamageSourcePropertiesLootCondition.builder(DamageSourcePredicate.Builder.create()
-                                    .sourceEntity(EntityPredicate.Builder.create().typeSpecific(TypeSpecificPredicate.frog(FROGE))))
-                    )).build()
-            );
+        LootTableEvents.MODIFY.register((key, tableBuilder, source) -> {
+            if (!key.getValue().equals(EntityType.MAGMA_CUBE.getLootTableId())) return;
+            tableBuilder.pool(LootPool.builder().with(ItemEntry.builder(FROGELIGHT).conditionally(
+                    DamageSourcePropertiesLootCondition.builder(DamageSourcePredicate.Builder.create()
+                            .sourceEntity(EntityPredicate.Builder.create().typeSpecific(EntitySubPredicateTypes.frogVariant(Registries.FROG_VARIANT.getEntry(FROGE))))))
+            ));
         });
     }
 
-    @SuppressWarnings("UnstableApiUsage")
     private static void insertFrogelight(FabricItemGroupEntries entries) {
         entries.addAfter(Blocks.PEARLESCENT_FROGLIGHT, FROGELIGHT);
     }
 
     public static Identifier id(String path) {
-        return new Identifier("delightful", path);
+        return Identifier.of("delightful", path);
     }
 }

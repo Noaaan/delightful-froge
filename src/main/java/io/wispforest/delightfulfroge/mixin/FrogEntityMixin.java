@@ -9,8 +9,9 @@ import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.entity.passive.FrogEntity;
 import net.minecraft.entity.passive.FrogVariant;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
@@ -32,18 +33,20 @@ public abstract class FrogEntityMixin extends MobEntity {
     }
 
     @Shadow
-    public abstract void setVariant(FrogVariant variant);
-
-    @Shadow
-    public abstract FrogVariant getVariant();
-
-    @Shadow
     @Final
     public AnimationState usingTongueAnimationState;
 
+    @Shadow
+    public abstract RegistryEntry<FrogVariant> getVariant();
+
+    @Shadow
+    public abstract void setVariant(RegistryEntry<FrogVariant> registryEntry);
+
     @Override
     protected ActionResult interactMob(PlayerEntity player, Hand hand) {
-        if (player.isSneaking() || !player.getStackInHand(hand).isEmpty() || this.getVariant() != DelightfulFroge.FROGE) return super.interactMob(player, hand);
+        if (player.isSneaking() || !player.getStackInHand(hand).isEmpty() || this.getVariant().value() != DelightfulFroge.FROGE) {
+            return super.interactMob(player, hand);
+        }
         if (this.getWorld().isClient) {
             for (int i = 0; i < 5; i++) {
                 double x = this.getX() + (this.random.nextDouble() - .5);
@@ -60,18 +63,18 @@ public abstract class FrogEntityMixin extends MobEntity {
     }
 
     @Inject(method = "initialize", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/passive/FrogBrain;coolDownLongJump(Lnet/minecraft/entity/passive/FrogEntity;Lnet/minecraft/util/math/random/Random;)V"))
-    private void injectFroge(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, EntityData entityData, NbtCompound entityNbt, CallbackInfoReturnable<EntityData> cir) {
+    private void injectFroge(ServerWorldAccess world, LocalDifficulty difficulty, SpawnReason spawnReason, EntityData entityData, CallbackInfoReturnable<EntityData> cir) {
         if (!(world instanceof ServerWorld serverWorld)) return;
 
         if (world.getBiome(this.getBlockPos()).isIn(DelightfulFroge.FROGE_PLACES)) {
-            this.setVariant(DelightfulFroge.FROGE);
+            this.setVariant(Registries.FROG_VARIANT.getEntry(DelightfulFroge.FROGE));
             return;
         }
 
         final var chance = serverWorld.getGameRules().getInt(DelightfulFroge.FROGE_CHANCE);
         if (serverWorld.random.nextBetween(0, 100) > chance) return;
 
-        this.setVariant(DelightfulFroge.FROGE);
+        this.setVariant(Registries.FROG_VARIANT.getEntry(DelightfulFroge.FROGE));
     }
 
 }
